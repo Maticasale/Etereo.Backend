@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Etereo.Domain\Etereo.Domain.csproj" />
+    <ProjectReference Include="..\Etereo.Shared\Etereo.Shared.csproj" />
+  </ItemGroup>
+</Project>
