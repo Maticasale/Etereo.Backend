@@ -17,17 +17,13 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         b.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(100).IsRequired();
         b.Property(x => x.Apellido).HasColumnName("apellido").HasMaxLength(100).IsRequired();
         b.Property(x => x.Telefono).HasColumnName("telefono").HasMaxLength(30);
-        b.Property(x => x.Sexo).HasColumnName("sexo").HasConversion<string>().HasMaxLength(15)
-            .HasDefaultValue(Sexo.NoEspecifica);
-        b.Property(x => x.Rol).HasColumnName("rol").HasConversion<string>().HasMaxLength(20)
-            .HasDefaultValue(Rol.Cliente);
-        b.Property(x => x.AuthProvider).HasColumnName("auth_provider").HasConversion<string>().HasMaxLength(20)
-            .HasDefaultValue(AuthProvider.Local);
+        b.Property(x => x.Sexo).HasColumnName("sexo").HasConversion<string>().HasMaxLength(15);
+        b.Property(x => x.Rol).HasColumnName("rol").HasConversion<string>().HasMaxLength(20);
+        b.Property(x => x.AuthProvider).HasColumnName("auth_provider").HasConversion<string>().HasMaxLength(20);
         b.Property(x => x.GoogleId).HasColumnName("google_id").HasMaxLength(100);
-        b.Property(x => x.Estado).HasColumnName("estado").HasConversion<string>().HasMaxLength(30)
-            .HasDefaultValue(EstadoUsuario.Activo);
+        b.Property(x => x.Estado).HasColumnName("estado").HasConversion<string>().HasMaxLength(30);
         b.Property(x => x.MotivoBloqueo).HasColumnName("motivo_bloqueo").HasMaxLength(500);
-        b.Property(x => x.DebeCambiarPassword).HasColumnName("debe_cambiar_password").HasDefaultValue(false);
+        b.Property(x => x.DebeCambiarPassword).HasColumnName("debe_cambiar_password");
         b.Property(x => x.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
         b.Property(x => x.CreadoEn).HasColumnName("creado_en");
         b.Property(x => x.ActualizadoEn).HasColumnName("actualizado_en");

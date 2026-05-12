@@ -16,8 +16,7 @@ public class VarianteSubservicioConfiguration : IEntityTypeConfiguration<Variant
         b.Property(x => x.Nombre).HasColumnName("nombre").HasMaxLength(150).IsRequired();
         b.Property(x => x.Precio).HasColumnName("precio").HasColumnType("numeric(10,2)").IsRequired();
         b.Property(x => x.DuracionMin).HasColumnName("duracion_min").IsRequired();
-        b.Property(x => x.Sexo).HasColumnName("sexo").HasConversion<string>().HasMaxLength(15)
-            .HasDefaultValue(SexoSubservicio.Ambos);
+        b.Property(x => x.Sexo).HasColumnName("sexo").HasConversion<string>().HasMaxLength(15);
         b.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
         b.Property(x => x.OrdenDisplay).HasColumnName("orden_display").HasDefaultValue(0);
         b.Property(x => x.CreadoEn).HasColumnName("creado_en");

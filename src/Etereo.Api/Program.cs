@@ -1,7 +1,8 @@
-using AspNetCoreRateLimit;
+﻿using AspNetCoreRateLimit;
 using Etereo.Infrastructure.Extensions;
 using Etereo.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using System.Text.Json;
@@ -9,9 +10,10 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Configuración desde variables de entorno ───────────────────────────────
-// Las env vars se cargan automáticamente. DATABASE_URL, JWT_SECRET_KEY, etc.
-// En desarrollo se pueden definir en .env.local (no trackeado por git).
+// ── Configuración (IConfiguration) ────────────────────────────────────────
+// En producción (Railway): variables de entorno inyectadas por la plataforma.
+// En desarrollo local: User Secrets de .NET (dotnet user-secrets set ...).
+// Nunca se commitean secrets al repo.
 
 // ── Infraestructura (EF Core + PostgreSQL + seeder) ───────────────────────
 builder.Services.AddInfrastructure(builder.Configuration);

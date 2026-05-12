@@ -20,8 +20,7 @@ public class SubservicioConfiguration : IEntityTypeConfiguration<Subservicio>
         b.Property(x => x.RequiereSilencio).HasColumnName("requiere_silencio").HasDefaultValue(false);
         b.Property(x => x.EsPack).HasColumnName("es_pack").HasDefaultValue(false);
         b.Property(x => x.DetallePack).HasColumnName("detalle_pack").HasMaxLength(500);
-        b.Property(x => x.Sexo).HasColumnName("sexo").HasConversion<string>().HasMaxLength(15)
-            .HasDefaultValue(SexoSubservicio.Ambos);
+        b.Property(x => x.Sexo).HasColumnName("sexo").HasConversion<string>().HasMaxLength(15);
         b.Property(x => x.Activo).HasColumnName("activo").HasDefaultValue(true);
         b.Property(x => x.OrdenDisplay).HasColumnName("orden_display").HasDefaultValue(0);
         b.Property(x => x.CreadoEn).HasColumnName("creado_en");
