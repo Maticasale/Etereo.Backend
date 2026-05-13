@@ -1,4 +1,5 @@
 using Etereo.Application.Common;
+using Etereo.Application.Interfaces.Emails;
 using Etereo.Application.Interfaces.Turnos;
 using Etereo.Domain.Entities.Cupones;
 using Etereo.Domain.Entities.Imputaciones;
@@ -12,6 +13,7 @@ namespace Etereo.Application.Services.Turnos;
 public class TurnosService : ITurnosService
 {
     private readonly ITurnosDbContext _db;
+    private readonly IEmailsService   _emails;
 
     // Horario de atención Argentina (UTC-3). Business hours → UTC: +3h
     private static readonly TimeSpan ArgOffset     = TimeSpan.FromHours(3);
@@ -19,7 +21,11 @@ public class TurnosService : ITurnosService
     private const int HoraCierreArg   = 21;
     private const int SlotMinutos     = 15;
 
-    public TurnosService(ITurnosDbContext db) => _db = db;
+    public TurnosService(ITurnosDbContext db, IEmailsService emails)
+    {
+        _db     = db;
+        _emails = emails;
+    }
 
     // ── Crear sesión ──────────────────────────────────────────────────────────
 
@@ -359,6 +365,7 @@ public class TurnosService : ITurnosService
         t.Estado = EstadoTurno.Confirmado;
         t.ActualizadoEn = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        _ = _emails.NotificarConfirmacionAsync(t.Id);
         return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
     }
 
@@ -373,6 +380,7 @@ public class TurnosService : ITurnosService
         t.MotivoRechazo = req.MotivoRechazo;
         t.ActualizadoEn = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        _ = _emails.NotificarRechazoAsync(t.Id, req.MotivoRechazo);
         return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
     }
 
@@ -390,6 +398,7 @@ public class TurnosService : ITurnosService
         t.Estado = EstadoTurno.Cancelado;
         t.ActualizadoEn = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        _ = _emails.NotificarCancelacionAsync(t.Id);
         return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
     }
 
@@ -472,6 +481,7 @@ public class TurnosService : ITurnosService
         }
 
         await _db.SaveChangesAsync();
+        _ = _emails.NotificarPostTurnoAsync(t.Id);
         return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
     }
 

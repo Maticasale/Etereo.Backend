@@ -57,6 +57,85 @@ public class ResendEmailService : IEmailService
         await SendAsync(toEmail, "¡Bienvenida a Etéreo!", html);
     }
 
+    public async Task SendConfirmacionTurnoAsync(string toEmail, string nombre, DateTime fechaHoraInicio, string servicio, string operario)
+    {
+        var fecha = fechaHoraInicio.ToString("dddd d 'de' MMMM", new System.Globalization.CultureInfo("es-AR"));
+        var hora  = fechaHoraInicio.ToString("HH:mm");
+        var html = $"""
+            <div style="font-family:sans-serif;max-width:500px;margin:auto">
+              <h2 style="color:#111">¡Turno confirmado!</h2>
+              <p>Hola <strong>{nombre}</strong>, tu turno fue confirmado.</p>
+              <table style="width:100%;margin:16px 0;border-collapse:collapse">
+                <tr><td style="color:#666;padding:4px 0">Servicio:</td><td><strong>{servicio}</strong></td></tr>
+                <tr><td style="color:#666;padding:4px 0">Operaria:</td><td><strong>{operario}</strong></td></tr>
+                <tr><td style="color:#666;padding:4px 0">Fecha:</td><td><strong>{fecha}</strong></td></tr>
+                <tr><td style="color:#666;padding:4px 0">Hora:</td><td><strong>{hora}</strong></td></tr>
+              </table>
+              <hr style="border:none;border-top:1px solid #eee;margin-top:32px"/>
+              <p style="color:#999;font-size:12px">Etéreo Salón</p>
+            </div>
+            """;
+        await SendAsync(toEmail, "Tu turno fue confirmado — Etéreo", html);
+    }
+
+    public async Task SendRechazoTurnoAsync(string toEmail, string nombre, DateTime fechaHoraInicio, string motivo)
+    {
+        var fecha = fechaHoraInicio.ToString("dddd d 'de' MMMM 'a las' HH:mm", new System.Globalization.CultureInfo("es-AR"));
+        var html = $"""
+            <div style="font-family:sans-serif;max-width:500px;margin:auto">
+              <h2 style="color:#111">Turno rechazado</h2>
+              <p>Hola <strong>{nombre}</strong>, lamentablemente tu turno del <strong>{fecha}</strong> no pudo confirmarse.</p>
+              <p><strong>Motivo:</strong> {motivo}</p>
+              <p>Podés reservar un nuevo turno cuando quieras.</p>
+              <hr style="border:none;border-top:1px solid #eee;margin-top:32px"/>
+              <p style="color:#999;font-size:12px">Etéreo Salón</p>
+            </div>
+            """;
+        await SendAsync(toEmail, "Tu turno no pudo confirmarse — Etéreo", html);
+    }
+
+    public async Task SendCancelacionTurnoAsync(string toEmail, string nombre, DateTime fechaHoraInicio)
+    {
+        var fecha = fechaHoraInicio.ToString("dddd d 'de' MMMM 'a las' HH:mm", new System.Globalization.CultureInfo("es-AR"));
+        var html = $"""
+            <div style="font-family:sans-serif;max-width:500px;margin:auto">
+              <h2 style="color:#111">Turno cancelado</h2>
+              <p>Hola <strong>{nombre}</strong>, tu turno del <strong>{fecha}</strong> fue cancelado.</p>
+              <p>Si querés, podés reservar un nuevo turno.</p>
+              <hr style="border:none;border-top:1px solid #eee;margin-top:32px"/>
+              <p style="color:#999;font-size:12px">Etéreo Salón</p>
+            </div>
+            """;
+        await SendAsync(toEmail, "Tu turno fue cancelado — Etéreo", html);
+    }
+
+    public async Task SendPostTurnoCalificacionAsync(string toEmail, string nombre, int turnoId)
+    {
+        var html = $"""
+            <div style="font-family:sans-serif;max-width:500px;margin:auto">
+              <h2 style="color:#111">¿Cómo estuvo tu turno?</h2>
+              <p>Hola <strong>{nombre}</strong>, gracias por visitarnos.</p>
+              <p>Tu opinión nos ayuda a mejorar.</p>
+              <hr style="border:none;border-top:1px solid #eee;margin-top:32px"/>
+              <p style="color:#999;font-size:12px">Etéreo Salón — turno #{turnoId}</p>
+            </div>
+            """;
+        await SendAsync(toEmail, "¿Cómo estuvo tu turno? — Etéreo", html);
+    }
+
+    public async Task SendCampanaAsync(string toEmail, string nombre, string asunto, string contenido)
+    {
+        var html = $"""
+            <div style="font-family:sans-serif;max-width:500px;margin:auto">
+              <p>Hola <strong>{nombre}</strong>,</p>
+              <div>{contenido}</div>
+              <hr style="border:none;border-top:1px solid #eee;margin-top:32px"/>
+              <p style="color:#999;font-size:12px">Etéreo Salón</p>
+            </div>
+            """;
+        await SendAsync(toEmail, asunto, html);
+    }
+
     // ── Interno ───────────────────────────────────────────────────────────────
 
     private async Task SendAsync(string toEmail, string subject, string html)

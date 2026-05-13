@@ -1,6 +1,7 @@
 using Etereo.Application.Interfaces.Auth;
 using Etereo.Application.Interfaces.Cupones;
 using Etereo.Application.Interfaces.Emails;
+using Etereo.Application.Interfaces.Estadisticas;
 using Etereo.Application.Interfaces.Imputaciones;
 using Etereo.Application.Interfaces.Operarios;
 using Etereo.Application.Interfaces.Servicios;
@@ -25,7 +26,8 @@ public class AppDbContext : DbContext,
     ITurnosDbContext,
     ICuponesDbContext,
     IImputacionesDbContext,
-    IEmailsDbContext
+    IEmailsDbContext,
+    IEstadisticasDbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -145,6 +147,7 @@ public class AppDbContext : DbContext,
     void ICuponesDbContext.AddCuponUso(CuponUso u) => CuponUsos.Add(u);
 
     // ── IImputacionesDbContext ─────────────────────────────────────
+    IQueryable<Usuario>             IImputacionesDbContext.Usuarios               => Usuarios.AsQueryable();
     IQueryable<CategoriaImputacion> IImputacionesDbContext.CategoriasImputacion  => CategoriasImputacion.AsQueryable();
     IQueryable<MetodoPago>          IImputacionesDbContext.MetodosPago            => MetodosPago.AsQueryable();
     IQueryable<MotivoBloqueoSalon>  IImputacionesDbContext.MotivosBloqueoSalon   => MotivosBloqueoSalon.AsQueryable();
@@ -154,14 +157,27 @@ public class AppDbContext : DbContext,
     void IImputacionesDbContext.AddMetodoPago(MetodoPago m)                   => MetodosPago.Add(m);
     void IImputacionesDbContext.AddMotivoBloqueoSalon(MotivoBloqueoSalon m)   => MotivosBloqueoSalon.Add(m);
     void IImputacionesDbContext.AddImputacion(Imputacion i)                   => Imputaciones.Add(i);
+    void IImputacionesDbContext.RemoveImputacion(Imputacion i)                => Imputaciones.Remove(i);
 
     // ── IEmailsDbContext ───────────────────────────────────────────
     IQueryable<ConfiguracionEmail> IEmailsDbContext.ConfiguracionesEmail => ConfiguracionesEmail.AsQueryable();
     IQueryable<EmailEnviado>       IEmailsDbContext.EmailsEnviados        => EmailsEnviados.AsQueryable();
     IQueryable<Calificacion>       IEmailsDbContext.Calificaciones        => Calificaciones.AsQueryable();
+    IQueryable<Turno>              IEmailsDbContext.Turnos                => Turnos.AsQueryable();
+    IQueryable<Usuario>            IEmailsDbContext.Usuarios              => Usuarios.AsQueryable();
+    IQueryable<Subservicio>        IEmailsDbContext.Subservicios          => Subservicios.AsQueryable();
 
     void IEmailsDbContext.AddEmailEnviado(EmailEnviado e) => EmailsEnviados.Add(e);
     void IEmailsDbContext.AddCalificacion(Calificacion c) => Calificaciones.Add(c);
+
+    // ── IEstadisticasDbContext ─────────────────────────────────────────
+    IQueryable<Turno>               IEstadisticasDbContext.Turnos               => Turnos.AsQueryable();
+    IQueryable<Imputacion>          IEstadisticasDbContext.Imputaciones         => Imputaciones.AsQueryable();
+    IQueryable<Usuario>             IEstadisticasDbContext.Usuarios             => Usuarios.AsQueryable();
+    IQueryable<Subservicio>         IEstadisticasDbContext.Subservicios         => Subservicios.AsQueryable();
+    IQueryable<Servicio>            IEstadisticasDbContext.Servicios            => Servicios.AsQueryable();
+    IQueryable<CategoriaImputacion> IEstadisticasDbContext.CategoriasImputacion => CategoriasImputacion.AsQueryable();
+    IQueryable<Calificacion>        IEstadisticasDbContext.Calificaciones       => Calificaciones.AsQueryable();
 
     // ── IUsuariosDbContext ─────────────────────────────────────────
     IQueryable<Usuario> IUsuariosDbContext.Usuarios => Usuarios.AsQueryable();

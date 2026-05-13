@@ -2,11 +2,16 @@
 using Etereo.Application.Interfaces.Cupones;
 using Etereo.Application.Interfaces.Email;
 using Etereo.Application.Interfaces.Emails;
+using Etereo.Application.Interfaces.Estadisticas;
 using Etereo.Application.Interfaces.Imputaciones;
 using Etereo.Application.Interfaces.Operarios;
 using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Turnos;
 using Etereo.Application.Interfaces.Usuarios;
+using Etereo.Application.Services.Cupones;
+using Etereo.Application.Services.Emails;
+using Etereo.Application.Services.Estadisticas;
+using Etereo.Application.Services.Imputaciones;
 using Etereo.Application.Services.Operarios;
 using Etereo.Application.Services.Servicios;
 using Etereo.Application.Services.Turnos;
@@ -47,6 +52,11 @@ public static class InfrastructureExtensions
         services.AddScoped<IServiciosService, ServiciosService>();
         services.AddScoped<IOperariosService, OperariosService>();
         services.AddScoped<ITurnosService, TurnosService>();
+        services.AddScoped<ICuponesService, CuponesService>();
+        services.AddScoped<IImputacionesService, ImputacionesService>();
+        services.AddScoped<IEmailsService, EmailsService>();
+        services.AddScoped<IEstadisticasDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IEstadisticasService, EstadisticasService>();
 
         // ── Servicios de infraestructura ──────────────────────────────────────
         services.AddScoped<IJwtService, JwtService>();
