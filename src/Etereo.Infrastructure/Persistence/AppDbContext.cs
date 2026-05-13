@@ -116,12 +116,26 @@ public class AppDbContext : DbContext,
     void IOperariosDbContext.AddDisponibilidadOperario(DisponibilidadOperario d)  => DisponibilidadesOperario.Add(d);
 
     // ── ITurnosDbContext ───────────────────────────────────────────
-    IQueryable<Sesion>               ITurnosDbContext.Sesiones             => Sesiones.AsQueryable();
-    IQueryable<Turno>                ITurnosDbContext.Turnos               => Turnos.AsQueryable();
-    IQueryable<ReglaDescuentoSesion> ITurnosDbContext.ReglasDescuentoSesion => ReglasDescuentoSesion.AsQueryable();
+    IQueryable<Sesion>               ITurnosDbContext.Sesiones                => Sesiones.AsQueryable();
+    IQueryable<Turno>                ITurnosDbContext.Turnos                  => Turnos.AsQueryable();
+    IQueryable<ReglaDescuentoSesion> ITurnosDbContext.ReglasDescuentoSesion   => ReglasDescuentoSesion.AsQueryable();
+    IQueryable<Usuario>              ITurnosDbContext.Usuarios                => Usuarios.AsQueryable();
+    IQueryable<OperarioSubservicio>  ITurnosDbContext.OperarioSubservicios    => OperarioSubservicios.AsQueryable();
+    IQueryable<Subservicio>          ITurnosDbContext.Subservicios            => Subservicios.AsQueryable();
+    IQueryable<Servicio>             ITurnosDbContext.Servicios               => Servicios.AsQueryable();
+    IQueryable<VarianteSubservicio>  ITurnosDbContext.VariantesSubservicio    => VariantesSubservicio.AsQueryable();
+    IQueryable<DisponibilidadSalon>    ITurnosDbContext.DisponibilidadesSalon    => DisponibilidadesSalon.AsQueryable();
+    IQueryable<DisponibilidadOperario> ITurnosDbContext.DisponibilidadesOperario => DisponibilidadesOperario.AsQueryable();
+    IQueryable<Cupon>                ITurnosDbContext.Cupones                 => Cupones.AsQueryable();
+    IQueryable<CuponUso>             ITurnosDbContext.CuponUsos               => CuponUsos.AsQueryable();
+    IQueryable<Imputacion>           ITurnosDbContext.Imputaciones            => Imputaciones.AsQueryable();
+    IQueryable<CategoriaImputacion>  ITurnosDbContext.CategoriasImputacion    => CategoriasImputacion.AsQueryable();
+    IQueryable<MetodoPago>           ITurnosDbContext.MetodosPago             => MetodosPago.AsQueryable();
 
-    void ITurnosDbContext.AddSesion(Sesion s) => Sesiones.Add(s);
-    void ITurnosDbContext.AddTurno(Turno t)   => Turnos.Add(t);
+    void ITurnosDbContext.AddSesion(Sesion s)         => Sesiones.Add(s);
+    void ITurnosDbContext.AddTurno(Turno t)            => Turnos.Add(t);
+    void ITurnosDbContext.AddImputacion(Imputacion i)  => Imputaciones.Add(i);
+    void ITurnosDbContext.AddCuponUso(CuponUso u)      => CuponUsos.Add(u);
 
     // ── ICuponesDbContext ──────────────────────────────────────────
     IQueryable<Cupon>    ICuponesDbContext.Cupones   => Cupones.AsQueryable();

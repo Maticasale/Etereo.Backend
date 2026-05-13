@@ -6,10 +6,10 @@ using Etereo.Application.Interfaces.Imputaciones;
 using Etereo.Application.Interfaces.Operarios;
 using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Turnos;
-using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Usuarios;
 using Etereo.Application.Services.Operarios;
 using Etereo.Application.Services.Servicios;
+using Etereo.Application.Services.Turnos;
 using Etereo.Application.Services.Usuarios;
 using Etereo.Infrastructure.Persistence;
 using Etereo.Infrastructure.Services.Auth;
@@ -46,6 +46,7 @@ public static class InfrastructureExtensions
         services.AddScoped<IUsuariosService, UsuariosService>();
         services.AddScoped<IServiciosService, ServiciosService>();
         services.AddScoped<IOperariosService, OperariosService>();
+        services.AddScoped<ITurnosService, TurnosService>();
 
         // ── Servicios de infraestructura ──────────────────────────────────────
         services.AddScoped<IJwtService, JwtService>();
