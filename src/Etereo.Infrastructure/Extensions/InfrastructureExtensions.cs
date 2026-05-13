@@ -6,6 +6,8 @@ using Etereo.Application.Interfaces.Imputaciones;
 using Etereo.Application.Interfaces.Operarios;
 using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Turnos;
+using Etereo.Application.Interfaces.Usuarios;
+using Etereo.Application.Services.Usuarios;
 using Etereo.Infrastructure.Persistence;
 using Etereo.Infrastructure.Services.Auth;
 using Etereo.Infrastructure.Services.Email;
@@ -29,12 +31,16 @@ public static class InfrastructureExtensions
 
         // ── IXxxDbContext → AppDbContext ──────────────────────────────────────
         services.AddScoped<IAuthDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<IUsuariosDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IServiciosDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IOperariosDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ITurnosDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ICuponesDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IImputacionesDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<IEmailsDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
+        // ── Application services ──────────────────────────────────────────────
+        services.AddScoped<IUsuariosService, UsuariosService>();
 
         // ── Servicios de infraestructura ──────────────────────────────────────
         services.AddScoped<IJwtService, JwtService>();

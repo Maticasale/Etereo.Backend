@@ -5,6 +5,7 @@ using Etereo.Application.Interfaces.Imputaciones;
 using Etereo.Application.Interfaces.Operarios;
 using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Turnos;
+using Etereo.Application.Interfaces.Usuarios;
 using Etereo.Domain.Entities.Auth;
 using Etereo.Domain.Entities.Cupones;
 using Etereo.Domain.Entities.Emails;
@@ -18,6 +19,7 @@ namespace Etereo.Infrastructure.Persistence;
 
 public class AppDbContext : DbContext,
     IAuthDbContext,
+    IUsuariosDbContext,
     IServiciosDbContext,
     IOperariosDbContext,
     ITurnosDbContext,
@@ -134,4 +136,9 @@ public class AppDbContext : DbContext,
 
     void IEmailsDbContext.AddEmailEnviado(EmailEnviado e) => EmailsEnviados.Add(e);
     void IEmailsDbContext.AddCalificacion(Calificacion c) => Calificaciones.Add(c);
+
+    // ── IUsuariosDbContext ─────────────────────────────────────────
+    IQueryable<Usuario> IUsuariosDbContext.Usuarios => Usuarios.AsQueryable();
+
+    void IUsuariosDbContext.AddUsuario(Usuario u) => Usuarios.Add(u);
 }
