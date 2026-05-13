@@ -210,6 +210,7 @@ public class UsuariosService : IUsuariosService
     {
         Id                  = u.Id,
         Email               = string.IsNullOrEmpty(u.Email) ? null! : u.Email,
+        Sexo                = u.Sexo.ToString(),
         Nombre              = u.Nombre,
         Apellido            = u.Apellido,
         Telefono            = u.Telefono,

@@ -31,6 +31,7 @@ public class UsuarioDto
     public string Nombre { get; set; } = string.Empty;
     public string Apellido { get; set; } = string.Empty;
     public string? Telefono { get; set; }
+    public string Sexo { get; set; } = string.Empty;
     public string Rol { get; set; } = string.Empty;
     public string Estado { get; set; } = string.Empty;
     public string? MotivoBloqueo { get; set; }

@@ -89,12 +89,13 @@ public class AppDbContext : DbContext,
     void IAuthDbContext.AddOperarioVistas(OperarioVistas v)     => OperarioVistas.Add(v);
 
     // ── IServiciosDbContext ────────────────────────────────────────
-    IQueryable<Servicio>          IServiciosDbContext.Servicios          => Servicios.AsQueryable();
-    IQueryable<Subservicio>       IServiciosDbContext.Subservicios       => Subservicios.AsQueryable();
-    IQueryable<VarianteSubservicio> IServiciosDbContext.VariantesSubservicio => VariantesSubservicio.AsQueryable();
+    IQueryable<Servicio>             IServiciosDbContext.Servicios             => Servicios.AsQueryable();
+    IQueryable<Subservicio>          IServiciosDbContext.Subservicios          => Subservicios.AsQueryable();
+    IQueryable<VarianteSubservicio>  IServiciosDbContext.VariantesSubservicio  => VariantesSubservicio.AsQueryable();
+    IQueryable<ReglaDescuentoSesion> IServiciosDbContext.ReglasDescuentoSesion => ReglasDescuentoSesion.AsQueryable();
 
-    void IServiciosDbContext.AddServicio(Servicio s)                  => Servicios.Add(s);
-    void IServiciosDbContext.AddSubservicio(Subservicio s)            => Subservicios.Add(s);
+    void IServiciosDbContext.AddServicio(Servicio s)                      => Servicios.Add(s);
+    void IServiciosDbContext.AddSubservicio(Subservicio s)                => Subservicios.Add(s);
     void IServiciosDbContext.AddVarianteSubservicio(VarianteSubservicio v) => VariantesSubservicio.Add(v);
 
     // ── IOperariosDbContext ────────────────────────────────────────

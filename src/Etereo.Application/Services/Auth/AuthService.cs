@@ -304,6 +304,7 @@ public class AuthService : IAuthService
         Nombre              = u.Nombre,
         Apellido            = u.Apellido,
         Telefono            = u.Telefono,
+        Sexo                = u.Sexo.ToString(),
         Rol                 = u.Rol.ToString(),
         Estado              = u.Estado.ToString(),
         MotivoBloqueo       = u.MotivoBloqueo,
