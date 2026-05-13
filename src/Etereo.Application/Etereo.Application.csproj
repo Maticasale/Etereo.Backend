@@ -8,4 +8,10 @@
     <ProjectReference Include="..\Etereo.Domain\Etereo.Domain.csproj" />
     <ProjectReference Include="..\Etereo.Shared\Etereo.Shared.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.*" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.*" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+  </ItemGroup>
 </Project>

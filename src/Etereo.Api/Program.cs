@@ -1,4 +1,6 @@
 ﻿using AspNetCoreRateLimit;
+using Etereo.Application.Interfaces.Auth;
+using Etereo.Application.Services.Auth;
 using Etereo.Infrastructure.Extensions;
 using Etereo.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -17,6 +19,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Infraestructura (EF Core + PostgreSQL + seeder) ───────────────────────
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// ── Application services ──────────────────────────────────────────────────
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // ── Controllers con JSON camelCase y enums como string ───────────────────
 builder.Services.AddControllers()
@@ -62,6 +67,7 @@ var jwtAudience = builder.Configuration["JWT_AUDIENCE"] ?? "etereo-app";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(opts =>
     {
+        opts.MapInboundClaims = false; // mantiene nombres originales: "sub", "rol", "email"
         opts.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer           = true,
