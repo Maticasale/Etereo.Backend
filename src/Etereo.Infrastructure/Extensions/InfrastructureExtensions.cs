@@ -8,6 +8,7 @@ using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Turnos;
 using Etereo.Application.Interfaces.Servicios;
 using Etereo.Application.Interfaces.Usuarios;
+using Etereo.Application.Services.Operarios;
 using Etereo.Application.Services.Servicios;
 using Etereo.Application.Services.Usuarios;
 using Etereo.Infrastructure.Persistence;
@@ -44,6 +45,7 @@ public static class InfrastructureExtensions
         // ── Application services ──────────────────────────────────────────────
         services.AddScoped<IUsuariosService, UsuariosService>();
         services.AddScoped<IServiciosService, ServiciosService>();
+        services.AddScoped<IOperariosService, OperariosService>();
 
         // ── Servicios de infraestructura ──────────────────────────────────────
         services.AddScoped<IJwtService, JwtService>();

@@ -99,10 +99,21 @@ public class AppDbContext : DbContext,
     void IServiciosDbContext.AddVarianteSubservicio(VarianteSubservicio v) => VariantesSubservicio.Add(v);
 
     // ── IOperariosDbContext ────────────────────────────────────────
-    IQueryable<OperarioSubservicio> IOperariosDbContext.OperarioSubservicios => OperarioSubservicios.AsQueryable();
+    IQueryable<Usuario>             IOperariosDbContext.Usuarios                  => Usuarios.AsQueryable();
+    IQueryable<OperarioSubservicio> IOperariosDbContext.OperarioSubservicios      => OperarioSubservicios.AsQueryable();
+    IQueryable<OperarioVistas>      IOperariosDbContext.OperarioVistas            => OperarioVistas.AsQueryable();
+    IQueryable<Subservicio>         IOperariosDbContext.Subservicios              => Subservicios.AsQueryable();
+    IQueryable<Servicio>            IOperariosDbContext.Servicios                 => Servicios.AsQueryable();
+    IQueryable<DisponibilidadSalon>    IOperariosDbContext.DisponibilidadesSalon    => DisponibilidadesSalon.AsQueryable();
+    IQueryable<DisponibilidadOperario> IOperariosDbContext.DisponibilidadesOperario => DisponibilidadesOperario.AsQueryable();
+    IQueryable<MotivoBloqueoSalon>     IOperariosDbContext.MotivosBloqueoSalon      => MotivosBloqueoSalon.AsQueryable();
 
-    void IOperariosDbContext.AddOperarioSubservicio(OperarioSubservicio os) => OperarioSubservicios.Add(os);
-    void IOperariosDbContext.RemoveOperarioSubservicio(OperarioSubservicio os) => OperarioSubservicios.Remove(os);
+    void IOperariosDbContext.AddOperarioSubservicio(OperarioSubservicio os)       => OperarioSubservicios.Add(os);
+    void IOperariosDbContext.RemoveOperarioSubservicio(OperarioSubservicio os)    => OperarioSubservicios.Remove(os);
+    void IOperariosDbContext.AddOperarioVistas(OperarioVistas v)                  => OperarioVistas.Add(v);
+    void IOperariosDbContext.AddDisponibilidadSalon(DisponibilidadSalon d)        => DisponibilidadesSalon.Add(d);
+    void IOperariosDbContext.RemoveDisponibilidadSalon(DisponibilidadSalon d)     => DisponibilidadesSalon.Remove(d);
+    void IOperariosDbContext.AddDisponibilidadOperario(DisponibilidadOperario d)  => DisponibilidadesOperario.Add(d);
 
     // ── ITurnosDbContext ───────────────────────────────────────────
     IQueryable<Sesion>               ITurnosDbContext.Sesiones             => Sesiones.AsQueryable();
