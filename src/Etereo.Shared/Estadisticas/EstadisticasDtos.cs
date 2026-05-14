@@ -80,3 +80,71 @@ public class OcupacionDiariaDto
     public int      TurnosCancelados { get; set; }
     public int      TurnosPendientes { get; set; }
 }
+
+// ── Turnos estadísticas ────────────────────────────────────────────────────────
+
+public class TurnosEstadisticasDto
+{
+    public int Total                          { get; set; }
+    public List<DistribucionEstadoDto> PorEstado { get; set; } = [];
+}
+
+// ── Calificaciones estadísticas ───────────────────────────────────────────────
+
+public class CalificacionesEstadisticasDto
+{
+    public double  PromedioGlobal { get; set; }
+    public int     Total          { get; set; }
+    public List<PromedioOperarioCalDto> PorOperario { get; set; } = [];
+}
+
+public class PromedioOperarioCalDto
+{
+    public int    OperarioId { get; set; }
+    public string Nombre     { get; set; } = string.Empty;
+    public double Promedio   { get; set; }
+    public int    Total      { get; set; }
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
+public class AlertaDashboardDto
+{
+    public string  Tipo      { get; set; } = string.Empty;  // "TURNOS_SIN_CONFIRMAR", "OPERARIO_SIN_TURNO", etc.
+    public string  Mensaje   { get; set; } = string.Empty;
+    public string  Prioridad { get; set; } = "Normal";      // "Alta" | "Normal" | "Baja"
+    public int?    Cantidad  { get; set; }
+}
+
+public class AgendaHoyItemDto
+{
+    public int      TurnoId    { get; set; }
+    public string   HoraInicio { get; set; } = string.Empty;
+    public string   HoraFin    { get; set; } = string.Empty;
+    public string   Cliente    { get; set; } = string.Empty;
+    public string   Operario   { get; set; } = string.Empty;
+    public string   Servicio   { get; set; } = string.Empty;
+    public string   Estado     { get; set; } = string.Empty;
+    public decimal? PrecioFinal { get; set; }
+}
+
+// ── Comisiones ────────────────────────────────────────────────────────────────
+
+public class ComisionDto
+{
+    public int      Id              { get; set; }
+    public int      OperarioId      { get; set; }
+    public string   NombreOperario  { get; set; } = string.Empty;
+    public int?     TurnoId         { get; set; }
+    public decimal  Monto           { get; set; }
+    public DateOnly Fecha           { get; set; }
+    public string   Concepto        { get; set; } = string.Empty;
+}
+
+public class ResumenComisionesDto
+{
+    public int              OperarioId      { get; set; }
+    public string           Nombre          { get; set; } = string.Empty;
+    public decimal          TotalComisiones { get; set; }
+    public List<ComisionDto> Comisiones     { get; set; } = [];
+}

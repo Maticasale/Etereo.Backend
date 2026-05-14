@@ -48,7 +48,7 @@ public class ImputacionesController : ControllerBase
         if (sub is null || !int.TryParse(sub, out var userId))
             return Unauthorized();
         var result = await _svc.CrearAsync(req, userId);
-        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+        return result.IsSuccess ? StatusCode(201, new { data = result.Value }) : Error(result);
     }
 
     // PUT /api/v1/imputaciones/{id}
@@ -74,8 +74,6 @@ public class ImputacionesController : ControllerBase
         var status = result.ErrorCode switch
         {
             "IMPUTACION_NO_ENCONTRADA" => 404,
-            "NO_EDITABLE"              => 409,
-            "NO_ELIMINABLE"            => 409,
             _                          => 400
         };
         return StatusCode(status, new { error = new { codigo = result.ErrorCode, mensaje = result.ErrorMessage } });

@@ -170,7 +170,7 @@ public class AppDbContext : DbContext,
     void IEmailsDbContext.AddEmailEnviado(EmailEnviado e) => EmailsEnviados.Add(e);
     void IEmailsDbContext.AddCalificacion(Calificacion c) => Calificaciones.Add(c);
 
-    // ── IEstadisticasDbContext ─────────────────────────────────────────
+    // ── IEstadisticasDbContext ─────────────────────────────────────────────
     IQueryable<Turno>               IEstadisticasDbContext.Turnos               => Turnos.AsQueryable();
     IQueryable<Imputacion>          IEstadisticasDbContext.Imputaciones         => Imputaciones.AsQueryable();
     IQueryable<Usuario>             IEstadisticasDbContext.Usuarios             => Usuarios.AsQueryable();
@@ -179,7 +179,7 @@ public class AppDbContext : DbContext,
     IQueryable<CategoriaImputacion> IEstadisticasDbContext.CategoriasImputacion => CategoriasImputacion.AsQueryable();
     IQueryable<Calificacion>        IEstadisticasDbContext.Calificaciones       => Calificaciones.AsQueryable();
 
-    // ── IUsuariosDbContext ─────────────────────────────────────────
+    // ── IUsuariosDbContext ─────────────────────────────────────────────────
     IQueryable<Usuario> IUsuariosDbContext.Usuarios => Usuarios.AsQueryable();
 
     void IUsuariosDbContext.AddUsuario(Usuario u) => Usuarios.Add(u);

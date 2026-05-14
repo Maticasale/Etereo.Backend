@@ -2,6 +2,8 @@ using Etereo.Application.Common;
 using Etereo.Application.Interfaces.Email;
 using Etereo.Application.Interfaces.Emails;
 using Etereo.Domain.Entities.Emails;
+using Etereo.Domain.Entities.Servicios;
+using Etereo.Domain.Entities.Turnos;
 using Etereo.Domain.Enums;
 using Etereo.Shared.Emails;
 using Microsoft.EntityFrameworkCore;

@@ -2,7 +2,7 @@
 
 > Fuente de verdad compartida entre Backend (.NET Core) y Frontend Web (React).
 > Define el contrato de API, modelos, enums y convenciones de nombrado.
-> Última actualización: Mayo 2026 — v2: sexo de cliente, variantes, sesiones, packs, precios reales.
+> Última actualización: Mayo 2026 — v4: claims JWT corregidos (sexo+jti), accesos imputaciones corregidos, rutas email canonizadas, secciones 5.2-5.10 completadas con DTOs reales.
 
 ---
 
@@ -79,11 +79,17 @@
 
 ### Claims en el JWT
 
+Generados por `JwtService.GenerateAccessToken(Usuario)`:
+
 | Claim | Tipo | Descripción |
 |---|---|---|
-| `sub` | `string` | ID del usuario |
-| `rol` | `string` | "Admin" \| "Operario" \| "Cliente" |
+| `sub` | `string` | ID del usuario (int serializado como string) |
+| `rol` | `string` | `"Admin"` \| `"Operario"` \| `"Cliente"` |
+| `sexo` | `string` | `"Masculino"` \| `"Femenino"` \| `"NoEspecifica"` — usado para filtrar subservicios en `GET /servicios` |
 | `email` | `string` | Email del usuario |
+| `jti` | `string` | GUID único del token (para trazabilidad) |
+
+**Nota importante:** Con `opts.MapInboundClaims = false`, los claims llegan con sus nombres originales. Leerlos en controllers con `User.FindFirstValue("sub")`, `User.FindFirstValue("rol")`, `User.FindFirstValue("sexo")`.
 
 ### Flujo de refresh
 1. Request falla con `401`.
@@ -202,9 +208,9 @@
 
 | Método | Ruta | Acceso |
 |---|---|---|
-| GET | `/imputaciones` | Admin |
+| GET | `/imputaciones` | Admin\|Operario |
 | GET | `/imputaciones/resumen` | Admin |
-| POST | `/imputaciones` | Admin |
+| POST | `/imputaciones` | Admin\|Operario |
 | PUT | `/imputaciones/{id}` | Admin |
 | DELETE | `/imputaciones/{id}` | Admin |
 | GET | `/categorias-imputacion` | Admin\|Operario |
@@ -222,29 +228,35 @@
 
 ### 4.9 Emails & Notificaciones
 
-| Método | Ruta | Acceso |
-|---|---|---|
-| GET | `/config/email` | Admin |
-| PUT | `/config/email` | Admin |
-| POST | `/emails/campana` | Admin |
-| POST | `/calificaciones` | Anónimo (con token) |
-| GET | `/calificaciones` | Admin |
-| GET | `/calificaciones/operario/{id}` | Admin\|Operario propio |
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/config/email` | Admin | Config global — **ruta canónica** (ConfigEmailController) |
+| PUT | `/config/email` | Admin | Actualizar config — **ruta canónica** (ConfigEmailController) |
+| GET | `/emails/configuracion` | Admin | Alias duplicado de `/config/email` (EmailsController) |
+| PUT | `/emails/configuracion` | Admin | Alias duplicado de `/config/email` (EmailsController) |
+| GET | `/emails/historial` | Admin | Historial (filtros: `tipo`, `estado`, `fechaDesde`, `fechaHasta`) |
+| POST | `/emails/campana` | Admin | Enviar campaña masiva |
+| POST | `/calificaciones` | `[Authorize]` (cualquier rol) | Crear calificación post-turno. El cliente **debe estar logueado**. El link se envía por WhatsApp al frontend (con el token JWT como query param); el frontend lo usa como Bearer en el header. |
+| GET | `/calificaciones` | Admin | Listar calificaciones (query: `?operarioId=`) |
+| GET | `/calificaciones/operario/{id}` | Admin\|Operario | Promedio de calificaciones de un operario |
 
 ### 4.10 Estadísticas & Dashboard
 
-| Método | Ruta | Acceso |
-|---|---|---|
-| GET | `/dashboard/kpis` | Admin |
-| GET | `/dashboard/alertas` | Admin |
-| GET | `/dashboard/agenda-hoy` | Admin\|Operario |
-| GET | `/estadisticas/ingresos-egresos` | Admin |
-| GET | `/estadisticas/servicios` | Admin |
-| GET | `/estadisticas/operarias` | Admin |
-| GET | `/estadisticas/turnos` | Admin |
-| GET | `/estadisticas/calificaciones` | Admin |
-| GET | `/comisiones` | Admin |
-| GET | `/comisiones/mi-resumen` | Operario |
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| GET | `/dashboard/kpis` | Admin | KPIs del día: turnos, ingresos, balance, calificaciones |
+| GET | `/dashboard/alertas` | Admin | Alertas activas: turnos sin confirmar, balance negativo, etc. |
+| GET | `/dashboard/agenda-hoy` | Admin\|Operario | Turnos de hoy; Operario ve sólo los suyos |
+| GET | `/estadisticas/resumen` | Admin | Resumen general del mes (turnos, financiero, distribución estados) |
+| GET | `/estadisticas/evolucion` | Admin | Evolución ingresos/egresos: `?fechaDesde&fechaHasta&agrupacion=dia\|semana\|mes` |
+| GET | `/estadisticas/ingresos-egresos` | Admin | Alias de evolucion con agrupacion=dia por defecto |
+| GET | `/estadisticas/servicios` | Admin | Ranking de subservicios por cantidad de turnos realizados |
+| GET | `/estadisticas/operarias` | Admin | Estadísticas por operaria: turnos, ingresos, calificaciones |
+| GET | `/estadisticas/turnos` | Admin | Distribución de turnos por estado en un rango de fechas |
+| GET | `/estadisticas/calificaciones` | Admin | Promedios de calificaciones globales y por operaria |
+| GET | `/estadisticas/ocupacion` | Admin | Ocupación diaria: turnos por día en un rango |
+| GET | `/comisiones` | Admin | Listado de comisiones (egresos vinculados a operarias) |
+| GET | `/comisiones/mi-resumen` | Operario | Resumen de comisiones propias |
 
 ---
 
@@ -258,16 +270,233 @@ RegisterRequest      { email: string; password: string; nombre: string; apellido
 GoogleAuthRequest    { idToken: string }
 RefreshRequest       { refreshToken: string }
 AuthResponse         { accessToken: string; refreshToken: string; usuario: UsuarioDto }
-UsuarioDto           { id: number; email: string; nombre: string; apellido: string; telefono?: string; rol: string; estado: string; motivoBloqueo?: string; debeCambiarPassword: boolean; avatarUrl?: string; creadoEn: string }
+UsuarioDto           { id: number; email: string; nombre: string; apellido: string; telefono?: string; sexo: string; rol: string; estado: string; motivoBloqueo?: string; debeCambiarPassword: boolean; avatarUrl?: string; creadoEn: string }
 CambiarPasswordRequest   { passwordActual: string; passwordNueva: string }
 ForgotPasswordRequest    { email: string }
 ResetPasswordRequest     { token: string; passwordNueva: string }
 BloquearUsuarioRequest   { motivo: string }
 ```
 
-### 5.2–5.10
+### 5.2 Usuarios
 
-Ver documentación completa en versión anterior del contrato (todos los DTOs de Servicios, Operarios, Turnos, Cupones, Imputaciones, Emails, Dashboard y Comisiones).
+```typescript
+// Requests
+ActualizarUsuarioRequest { nombre?: string; apellido?: string; telefono?: string; sexo?: string }
+BloquearUsuarioRequest   { motivo: string }
+CrearClienteRequest      { nombre: string; apellido: string; email?: string; telefono?: string; sexo?: string }
+
+// Responses
+UsuariosListResponse     { items: UsuarioDto[]; total: number }
+// UsuarioDto — definido en sección 5.1
+```
+
+### 5.3 Servicios, Subservicios y Variantes
+
+```typescript
+// Requests
+CrearServicioRequest        { nombre: string; salon: string; categoriaImputacionId?: number; ordenDisplay?: number }
+ActualizarServicioRequest   { nombre?: string; salon?: string; categoriaImputacionId?: number; ordenDisplay?: number }
+EstadoRequest               { activo: boolean }
+
+CrearSubservicioRequest     { servicioId: number; nombre: string; descripcion?: string; precio?: number;
+                              duracionMin?: number; requiereSilencio?: boolean; esPack?: boolean;
+                              detallePack?: string; sexo?: string; ordenDisplay?: number }
+ActualizarSubservicioRequest { nombre?: string; descripcion?: string; precio?: number; duracionMin?: number;
+                               requiereSilencio?: boolean; esPack?: boolean; detallePack?: string;
+                               sexo?: string; ordenDisplay?: number }
+
+CrearVarianteRequest        { nombre: string; precio: number; duracionMin: number; sexo?: string; ordenDisplay?: number }
+ActualizarVarianteRequest   { nombre?: string; precio?: number; duracionMin?: number; sexo?: string; ordenDisplay?: number }
+
+ActualizarReglaDescuentoRequest { zonasMinimas: number; porcentajeDescuento: number; activo: boolean }
+
+// Responses
+VarianteDto     { id: number; nombre: string; precio: number; duracionMin: number; sexo: string; activo: boolean; ordenDisplay: number }
+SubservicioDto  { id: number; servicioId: number; nombre: string; descripcion?: string; precio?: number;
+                  duracionMin?: number; requiereSilencio: boolean; esPack: boolean; detallePack?: string;
+                  sexo: string; activo: boolean; ordenDisplay: number; variantes: VarianteDto[] }
+ServicioDto     { id: number; nombre: string; salon: string; categoriaImputacionId?: number;
+                  activo: boolean; ordenDisplay: number; subservicios: SubservicioDto[] }
+EstadoConfiguracionDto { configurado: boolean; mensaje: string }
+ReglaDescuentoDto { id: number; servicioId: number; nombreServicio: string;
+                    zonasMinimas: number; porcentajeDescuento: number; activo: boolean }
+```
+
+### 5.4 Operarios y Disponibilidad
+
+```typescript
+// Requests
+AsignarSubservicioRequest       { subservicioId: number; porcentajeComision: number }
+ActualizarComisionRequest       { porcentajeComision: number }
+ActualizarVistasRequest         { verMisTurnos: boolean; verMisComisiones: boolean; verMiCalificacion: boolean; verMisEstadisticas: boolean }
+CrearDisponibilidadSalonRequest    { fecha: string; salon: string; motivoId: number; descripcion?: string }
+CrearDisponibilidadOperarioRequest { operarioId: number; fecha: string; trabaja: boolean; motivoAusencia?: string }
+
+// Responses
+OperarioSubservicioDto  { id: number; operarioId: number; subservicioId: number;
+                          nombreSubservicio: string; nombreServicio: string; porcentajeComision: number }
+OperarioVistasDto       { id: number; operarioId: number; verMisTurnos: boolean; verMisComisiones: boolean;
+                          verMiCalificacion: boolean; verMisEstadisticas: boolean }
+DisponibilidadSalonDto    { id: number; fecha: string; salon: string; motivoId: number;
+                            nombreMotivo: string; descripcion?: string; creadoPorId: number }
+DisponibilidadOperarioDto { id: number; operarioId: number; fecha: string; trabaja: boolean; motivoAusencia?: string }
+```
+
+### 5.5 Turnos y Sesiones
+
+```typescript
+// Requests
+CrearTurnoRequest         { clienteId?: number; nombreAnonimo?: string; telefonoAnonimo?: string;
+                            operarioId: number; subservicioId: number; varianteId?: number;
+                            fechaHoraInicio: string; notas?: string; cuponId?: number }
+CrearSesionRequest        { clienteId?: number; nombreAnonimo?: string; telefonoAnonimo?: string;
+                            operarioId: number; salon: string; fechaHoraInicio: string;
+                            zonas: { subservicioId: number; varianteId?: number }[] }
+RechazarTurnoRequest      { motivoRechazo: string }
+RealizarTurnoRequest      { metodoPagoId: number; precioFinal: number }
+
+// Responses
+TurnoDto {
+  id: number; salon: string; clienteId?: number; nombreCliente?: string; nombreAnonimo?: string; telefonoAnonimo?: string;
+  operarioId: number; nombreOperario: string; subservicioId: number; nombreSubservicio: string; nombreServicio: string;
+  varianteId?: number; nombreVariante?: string; sesionId?: number; fechaHoraInicio: string; duracionMin: number;
+  estado: string; motivoRechazo?: string; precioBase: number; porcentajeDescuento?: number;
+  cuponId?: number; precioFinal?: number; metodoPagoId?: number; nombreMetodoPago?: string;
+  comisionCalculada?: number; notas?: string; creadoEn: string; actualizadoEn: string
+}
+SesionDto {
+  id: number; clienteId?: number; nombreCliente?: string; nombreAnonimo?: string; telefonoAnonimo?: string;
+  operarioId: number; nombreOperario: string; salon: string; fechaHoraInicio: string; estado: string;
+  descuentoAutoPct?: number; turnos: TurnoDto[]; creadoEn: string
+}
+SlotOcupadoDto    { inicio: string; fin: string; estado: string }
+DisponibilidadDto { disponible: boolean; motivoNoDisponible?: string;
+                    slotsOcupados: SlotOcupadoDto[]; horariosDisponibles: string[] }
+```
+
+### 5.6 Cupones
+
+```typescript
+// Requests
+CrearCuponRequest    { codigo: string; descripcion?: string; tipoDescuento: string; valor: number;
+                       serviciosIds?: number[]; fechaDesde: string; fechaHasta: string;
+                       usosMaximos?: number; unUsoPorCliente: boolean }
+ActualizarCuponRequest { descripcion?: string; valor?: number; serviciosIds?: number[];
+                          fechaDesde?: string; fechaHasta?: string; usosMaximos?: number; unUsoPorCliente?: boolean }
+EstadoCuponRequest   { activo: boolean }
+
+// Response
+CuponDto { id: number; codigo: string; descripcion?: string; tipoDescuento: string; valor: number;
+           serviciosIds?: number[]; fechaDesde: string; fechaHasta: string; usosMaximos?: number;
+           usosActuales: number; unUsoPorCliente: boolean; activo: boolean; creadoEn: string }
+```
+
+### 5.7 Imputaciones y Catálogos
+
+```typescript
+// Requests
+CrearImputacionRequest    { fecha: string; tipo: string; categoriaId: number; descripcion?: string;
+                            monto: number; turnoId?: number; operarioId?: number }
+ActualizarImputacionRequest { fecha?: string; categoriaId?: number; descripcion?: string; monto?: number; operarioId?: number }
+CrearCategoriaImputacionRequest  { nombre: string; tipo: string; descripcion?: string }
+ActualizarCategoriaImputacionRequest { nombre?: string; descripcion?: string }
+EstadoImputacionRequest  { activo: boolean }
+CrearMetodoPagoRequest   { nombre: string }
+ActualizarMetodoPagoRequest { nombre: string }
+CrearMotivoBloqueoRequest   { nombre: string }
+ActualizarMotivoBloqueoRequest { nombre: string }
+
+// Responses
+ImputacionDto { id: number; fecha: string; tipo: string; categoriaId: number; nombreCategoria: string;
+                descripcion?: string; monto: number; turnoId?: number; operarioId?: number;
+                nombreOperario?: string; cargadoPorId: number; origen: string; creadoEn: string }
+ResumenImputacionesDto { totalIngresos: number; totalEgresos: number; balance: number;
+                          porCategoria: { nombreCategoria: string; tipo: string; total: number }[] }
+CategoriaImputacionDto { id: number; nombre: string; tipo: string; descripcion?: string; activo: boolean; ordenDisplay: number }
+MetodoPagoDto          { id: number; nombre: string; activo: boolean; ordenDisplay: number }
+MotivoBloqueoSalonDto  { id: number; nombre: string; activo: boolean; ordenDisplay: number }
+```
+
+### 5.8 Emails, Calificaciones y Configuración
+
+```typescript
+// Requests
+ActualizarConfiguracionEmailRequest { recordatorioDiasAntes?: number; postturnoHorasDespues?: number; emailsActivos?: boolean }
+CrearCalificacionRequest            { turnoId: number; puntuacion: number; comentario?: string }
+EnviarCampanaRequest                { emails: string[]; asunto: string; contenido: string }
+
+// Responses
+ConfiguracionEmailDto { id: number; recordatorioDiasAntes: number; postturnoHorasDespues: number;
+                        emailsActivos: boolean; actualizadoEn: string }
+EmailEnviadoDto       { id: number; tipo: string; destinatario: string; turnoId?: number; usuarioId?: number;
+                        estado: string; errorDetalle?: string; enviadoEn: string }
+CalificacionDto       { id: number; turnoId: number; clienteId: number; nombreCliente: string;
+                        operarioId: number; nombreOperario: string; puntuacion: number; comentario?: string; creadoEn: string }
+PromedioCalificacionDto { operarioId: number; nombreOperario: string; promedio: number; totalCalificaciones: number }
+```
+
+### 5.9 Estadísticas
+
+```typescript
+// Todos los endpoints de /estadisticas son GET con parámetros de query
+// Responses:
+ResumenEstadisticasDto {
+  // Turnos
+  turnosHoy: number; turnosSemana: number; turnosMes: number;
+  // Financiero
+  ingresosHoy: number; ingresosSemana: number; ingresosMes: number;
+  egresosHoy: number; egresosSemana: number; egresosMes: number;
+  balanceHoy: number; balanceSemana: number; balanceMes: number;  // calculados
+  // Calificaciones
+  promedioCalificacionGlobal: number; totalCalificaciones: number;
+  // Distribución
+  turnosPorEstado: { estado: string; cantidad: number; porcentaje: number }[]
+}
+
+// GET /estadisticas/evolucion e /estadisticas/ingresos-egresos
+PuntoEvolucionDto { periodo: string; ingresos: number; egresos: number; balance: number }
+
+// GET /estadisticas/servicios
+ServicioRankingDto { subservicioId: number; nombreServicio: string; nombreCategoria: string;
+                     cantidadTurnos: number; ingresoTotal: number }
+
+// GET /estadisticas/operarias
+OperariaEstadisticasDto { operarioId: number; nombre: string; turnosMes: number; turnosRealizados: number;
+                           ingresosMes: number; comisionesMes: number; promedioCalificacion: number; totalCalificaciones: number }
+
+// GET /estadisticas/ocupacion
+OcupacionDiariaDto { fecha: string; totalTurnos: number; turnosRealizados: number; turnosCancelados: number; turnosPendientes: number }
+
+// GET /estadisticas/turnos
+TurnosEstadisticasDto { total: number; porEstado: { estado: string; cantidad: number; porcentaje: number }[] }
+
+// GET /estadisticas/calificaciones
+CalificacionesEstadisticasDto {
+  promedioGlobal: number; total: number;
+  porOperario: { operarioId: number; nombre: string; promedio: number; total: number }[]
+}
+```
+
+### 5.10 Dashboard y Comisiones
+
+```typescript
+// GET /dashboard/kpis → ResumenEstadisticasDto (mismo tipo que /estadisticas/resumen pero filtrado a hoy)
+
+// GET /dashboard/alertas → AlertaDashboardDto[]
+AlertaDashboardDto { tipo: string; mensaje: string; prioridad: string; cantidad?: number }
+// tipo puede ser: "TURNOS_SIN_CONFIRMAR", "OPERARIO_SIN_TURNO", "BALANCE_NEGATIVO", etc.
+
+// GET /dashboard/agenda-hoy → AgendaHoyItemDto[]
+AgendaHoyItemDto { turnoId: number; horaInicio: string; horaFin: string; cliente: string;
+                   operario: string; servicio: string; estado: string; precioFinal?: number }
+
+// GET /comisiones → ComisionDto[]
+ComisionDto { id: number; operarioId: number; nombreOperario: string; turnoId?: number;
+              monto: number; fecha: string; concepto: string }
+
+// GET /comisiones/mi-resumen → ResumenComisionesDto
+ResumenComisionesDto { operarioId: number; nombre: string; totalComisiones: number; comisiones: ComisionDto[] }
+```
 
 ---
 
@@ -356,6 +585,20 @@ Reglas descuento:     Depilación Láser → 3 zonas → 15%
                       Depilación Descartable → 3 zonas → 10%
 Servicios/precios:    Ver DatabaseSeeder.cs (precios Marzo 2026)
 ```
+
+---
+
+## 9. Códigos de error
+
+Ver `ETEREO_BACKEND_SOT.md` sección 8 para la tabla completa de `ErrorCode` por módulo y sus HTTP status codes.
+
+Regla general de mapeo status:
+- `4xx` error de negocio → `400` si no hay código más específico
+- `_NOT_FOUND` → `404`
+- `_EN_USO` / `_INVALIDA` (conflicto) → `409`
+- `_SIN_PERMISO` → `403`
+- `TOKEN_*` → `401`
+- `SALON_INVALIDO` / `TIPO_*_INVALIDO` → `422`
 
 ---
 

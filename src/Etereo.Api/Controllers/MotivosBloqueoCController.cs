@@ -29,7 +29,7 @@ public class MotivosBloqueoSalonController : ControllerBase
     public async Task<IActionResult> Crear([FromBody] CrearMotivoBloqueoRequest req)
     {
         var result = await _svc.CrearMotivoBloqueoAsync(req);
-        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+        return result.IsSuccess ? StatusCode(201, new { data = result.Value }) : Error(result);
     }
 
     // PUT /api/v1/motivos-bloqueo-salon/{id}
@@ -52,7 +52,11 @@ public class MotivosBloqueoSalonController : ControllerBase
 
     private IActionResult Error<T>(Result<T> result)
     {
-        var status = result.ErrorCode == "MOTIVO_NO_ENCONTRADO" ? 404 : 400;
+        var status = result.ErrorCode switch
+        {
+            "MOTIVO_NO_ENCONTRADO" => 404,
+            _                      => 400
+        };
         return StatusCode(status, new { error = new { codigo = result.ErrorCode, mensaje = result.ErrorMessage } });
     }
 }

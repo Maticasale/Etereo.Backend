@@ -60,17 +60,17 @@ public static class InfrastructureExtensions
 
         // ── Servicios de infraestructura ──────────────────────────────────────
         services.AddScoped<IJwtService, JwtService>();
+        services.AddScoped<DatabaseSeeder>();
 
         services.AddHttpClient<IEmailService, ResendEmailService>((sp, client) =>
         {
             var cfg = sp.GetRequiredService<IConfiguration>();
             var key = cfg["RESEND_API_KEY"];
             if (!string.IsNullOrEmpty(key))
-                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {key}");
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", key);
+            client.BaseAddress = new Uri("https://api.resend.com/");
         });
-
-        // ── Seeder ────────────────────────────────────────────────────────────
-        services.AddScoped<DatabaseSeeder>();
 
         return services;
     }

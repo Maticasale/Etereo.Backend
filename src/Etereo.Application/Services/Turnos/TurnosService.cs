@@ -626,13 +626,13 @@ public class TurnosService : ITurnosService
             NombreAnonimo    = s.NombreAnonimo,
             TelefonoAnonimo  = s.TelefonoAnonimo,
             OperarioId       = s.OperarioId,
-            NombreOperario   = operario is not null ? $"{operario.Nombre} {operario.Apellido}" : string.Empty,
-            Salon            = s.Salon.ToString(),
-            FechaHoraInicio  = s.FechaHoraInicio,
-            Estado           = s.Estado.ToString(),
-            DescuentoAutoPct = s.DescuentoAutoPct,
-            Turnos           = dtos,
-            CreadoEn         = s.CreadoEn
+            NombreOperario    = operario is not null ? $"{operario.Nombre} {operario.Apellido}" : string.Empty,
+            Salon             = s.Salon.ToString(),
+            FechaHoraInicio   = s.FechaHoraInicio,
+            Estado            = s.Estado.ToString(),
+            DescuentoAutoPct  = s.DescuentoAutoPct,
+            Turnos            = dtos,
+            CreadoEn          = s.CreadoEn
         };
     }
 }

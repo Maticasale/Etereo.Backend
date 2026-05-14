@@ -29,7 +29,7 @@ public class CategoriasImputacionController : ControllerBase
     public async Task<IActionResult> Crear([FromBody] CrearCategoriaImputacionRequest req)
     {
         var result = await _svc.CrearCategoriaAsync(req);
-        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+        return result.IsSuccess ? StatusCode(201, new { data = result.Value }) : Error(result);
     }
 
     // PUT /api/v1/categorias-imputacion/{id}
@@ -52,7 +52,11 @@ public class CategoriasImputacionController : ControllerBase
 
     private IActionResult Error<T>(Result<T> result)
     {
-        var status = result.ErrorCode == "CATEGORIA_NO_ENCONTRADA" ? 404 : 400;
+        var status = result.ErrorCode switch
+        {
+            "CATEGORIA_NO_ENCONTRADA" => 404,
+            _                         => 400
+        };
         return StatusCode(status, new { error = new { codigo = result.ErrorCode, mensaje = result.ErrorMessage } });
     }
 }

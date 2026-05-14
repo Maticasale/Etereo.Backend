@@ -67,6 +67,40 @@ public class EstadisticasController : ControllerBase
         return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
     }
 
+    // GET /api/v1/estadisticas/ingresos-egresos?fechaDesde=&fechaHasta=&agrupacion=dia|semana|mes
+    [HttpGet("ingresos-egresos")]
+    [RequiereRol("Admin")]
+    public async Task<IActionResult> IngresosEgresos(
+        [FromQuery] DateOnly? fechaDesde,
+        [FromQuery] DateOnly? fechaHasta,
+        [FromQuery] string agrupacion = "dia")
+    {
+        var result = await _svc.IngresosEgresosAsync(fechaDesde, fechaHasta, agrupacion);
+        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+    }
+
+    // GET /api/v1/estadisticas/turnos?fechaDesde=&fechaHasta=
+    [HttpGet("turnos")]
+    [RequiereRol("Admin")]
+    public async Task<IActionResult> Turnos(
+        [FromQuery] DateOnly? fechaDesde,
+        [FromQuery] DateOnly? fechaHasta)
+    {
+        var result = await _svc.TurnosAsync(fechaDesde, fechaHasta);
+        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+    }
+
+    // GET /api/v1/estadisticas/calificaciones?fechaDesde=&fechaHasta=
+    [HttpGet("calificaciones")]
+    [RequiereRol("Admin")]
+    public async Task<IActionResult> Calificaciones(
+        [FromQuery] DateOnly? fechaDesde,
+        [FromQuery] DateOnly? fechaHasta)
+    {
+        var result = await _svc.CalificacionesAsync(fechaDesde, fechaHasta);
+        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+    }
+
     private IActionResult Error<T>(Result<T> result) =>
         StatusCode(400, new { error = new { codigo = result.ErrorCode, mensaje = result.ErrorMessage } });
 }

@@ -3,7 +3,7 @@
 > Documento técnico maestro del backend. Refleja el diseño acordado del sistema de gestión de la estética Etereo.
 > En caso de ambigüedad entre este documento y el código, el código prevalece y este documento se actualiza.
 
-**Última actualización:** Mayo 2026 — v2: sexo de cliente, variantes de subservicio, sesiones con descuento automático, packs diferenciados, precios reales cargados.
+**Última actualización:** Mayo 2026 — v4: revisión completa contra código real — 9 interfaces IXxxDbContext, claims JWT corregidos (sub/rol/sexo/email/jti), imputaciones acceso Admin|Operario, background job emails [PENDIENTE], secciones 5.3-5.10 completadas con lógica real.
 
 ---
 
@@ -11,8 +11,8 @@
 
 - **Stack:** ASP.NET Core 10, Entity Framework Core 10, PostgreSQL, JWT (HS256), BCrypt (workFactor 12), Railway (hosting), Docker multi-stage.
 - **Auth:** JWT access token 15min + refresh token 30d con rotación obligatoria. Google OAuth con `Google.Apis.Auth`.
-- **Email:** Resend (3.000 emails/mes gratis permanente). Background job cada 15min para recordatorios y post-turno.
-- **8 módulos:** Auth+Usuarios, Servicios+Subservicios, Operarios, Turnos, Cupones, Imputaciones, Emails+Notificaciones, Estadísticas+Dashboard.
+- **Email:** Resend (3.000 emails/mes gratis permanente). [PENDIENTE] Background job cada 15min para recordatorios y post-turno — `IEmailsService` implementado pero no hay `IHostedService` registrado en `Program.cs`.
+- **10 módulos:** Auth+Usuarios, Servicios+Subservicios, Operarios, Turnos, Cupones, Imputaciones, Emails+Notificaciones, Estadísticas+Dashboard+Comisiones.
 - **22 tablas** en PostgreSQL.
 - **Sexo del cliente** filtrado automático de subservicios por sexo del usuario registrado.
 - **Variantes de subservicio** para alisados, trenzas, drenaje linfático (sub-sub-servicio).
@@ -67,7 +67,22 @@ Api ──► Infrastructure ──► Application + Domain
 - Solo expone `IQueryable<T>` (nunca `DbSet<T>`).
 - Métodos `AddXxx` / `RemoveXxx` explícitos por entidad.
 - `Task<int> SaveChangesAsync(CancellationToken ct)` disponible.
-- `AppDbContext` implementa todas las interfaces usando explicit interface implementation.
+- `AppDbContext` implementa las **9 interfaces** usando explicit interface implementation.
+- Registradas en `InfrastructureExtensions.AddInfrastructure()` via `sp.GetRequiredService<AppDbContext>()`.
+
+**Las 9 interfaces (una por módulo/responsabilidad):**
+
+| Interfaz | Entidades expuestas |
+|---|---|
+| `IAuthDbContext` | Usuario, RefreshToken, PasswordResetToken, DisponibilidadSalon, DisponibilidadOperario, OperarioVistas |
+| `IUsuariosDbContext` | Usuario, OperarioVistas |
+| `IServiciosDbContext` | Servicio, Subservicio, VarianteSubservicio, ReglaDescuentoSesion |
+| `IOperariosDbContext` | Usuario, OperarioSubservicio, OperarioVistas, Subservicio, Servicio, DisponibilidadSalon, DisponibilidadOperario, MotivoBloqueoSalon |
+| `ITurnosDbContext` | Sesion, Turno, ReglaDescuentoSesion, Usuario, OperarioSubservicio, Subservicio, Servicio, VarianteSubservicio, DisponibilidadSalon, DisponibilidadOperario, Cupon, CuponUso, Imputacion, CategoriaImputacion, MetodoPago |
+| `ICuponesDbContext` | Cupon, CuponUso |
+| `IImputacionesDbContext` | Usuario, CategoriaImputacion, MetodoPago, MotivoBloqueoSalon, Imputacion |
+| `IEmailsDbContext` | ConfiguracionEmail, EmailEnviado, Calificacion, Turno, Usuario, Subservicio |
+| `IEstadisticasDbContext` | Turno, Imputacion, Usuario, Subservicio, Servicio, CategoriaImputacion, Calificacion |
 
 ### 1.4 Autorización por rol
 
@@ -75,16 +90,22 @@ Sin sistema RBAC complejo. Autorización directa contra el claim `rol` del JWT:
 
 ```csharp
 // Atributo personalizado
-[RequiereRol(Roles.Admin)]
-[RequiereRol(Roles.Admin, Roles.Operario)]  // cualquiera de los dos
+[RequiereRol("Admin")]
+[RequiereRol("Admin", "Operario")]  // cualquiera de los dos
+[Authorize]                         // cualquier usuario autenticado (sin importar rol)
+[AllowAnonymous]                    // sin token requerido
 ```
 
-Claims en el JWT:
+Claims en el JWT (generados por `JwtService.GenerateAccessToken`):
 ```
-sub    → id del usuario (string)
+sub    → id del usuario (int como string)
 rol    → "Admin" | "Operario" | "Cliente"
+sexo   → "Masculino" | "Femenino" | "NoEspecifica"  ← usado para filtrar subservicios
 email  → email del usuario
+jti    → GUID único del token (Guid.NewGuid)
 ```
+
+TTL: 15 minutos. `ClockSkew = TimeSpan.Zero` → no hay margen de gracia.
 
 ### 1.5 Rate limiting
 
@@ -471,9 +492,127 @@ Al crear POST /sesiones con N zonas (subservicioIds del mismo servicio láser/de
 Los packs (es_pack=true) NO usan sesiones. Su precio ya tiene descuento incorporado.
 ```
 
-### 5.3–5.10
+### 5.3 Turnos — estado inicial según creador
 
-Ver documento original completo para lógica de turnos, imputaciones automáticas, degradar operaria, background jobs, etc.
+```
+Turno creado por cliente propio o anónimo  →  Estado = PendienteConfirmacion
+Turno creado por Admin o Operario          →  Estado = Confirmado (directo)
+
+Regla implementada en TurnosService.CrearTurnoAsync():
+  if (userId != null && turno.ClienteId == userId) → PendienteConfirmacion
+  if (userId == null)                              → PendienteConfirmacion (anónimo)
+  if (rol == "Admin" || rol == "Operario")         → Confirmado
+```
+
+### 5.4 Transiciones de estado de turno
+
+```
+PendienteConfirmacion → Confirmar()  → Confirmado
+PendienteConfirmacion → Rechazar()   → Rechazado  (requiere MotivoRechazo)
+Confirmado            → Cancelar()   → Cancelado
+Confirmado            → Multa()      → Multa
+Confirmado            → Ausente()    → Ausente
+Confirmado            → Realizar()   → Realizado  (requiere MetodoPagoId + PrecioFinal)
+Confirmado            → Impago()     → Impago
+Confirmado            → Publicidad() → Publicidad
+Multa                 → Confirmar()  → Confirmado (cuando reagenda y paga el 50%)
+
+Cualquier otra transición → error TRANSICION_INVALIDA (409)
+```
+
+### 5.5 Imputaciones automáticas al realizar turno
+
+```
+Al marcar Turno como Realizado (POST /turnos/{id}/realizar):
+  1. turno.PrecioFinal = req.PrecioFinal
+     turno.MetodoPagoId = req.MetodoPagoId
+     turno.ComisionCalculada = operario.PorcentajeComision * PrecioFinal
+
+  2. Se crea Imputacion (Ingreso, origen=Automatico, turnoId=X)
+       Monto = PrecioFinal
+       CategoriaId = Servicio.CategoriaImputacionId
+
+  3. Si operario tiene asignada comisión (OperarioSubservicio.PorcentajeComision > 0):
+       Se crea Imputacion (Egreso, origen=Automatico, turnoId=X)
+       Monto = ComisionCalculada
+       CategoriaId = "Comisión Operaria"
+
+Las imputaciones con origen=Automatico NO son editables ni eliminables.
+PUT /imputaciones/{id} y DELETE /imputaciones/{id} → 403 si origen=Automatico.
+```
+
+### 5.6 Background jobs de email [PENDIENTE]
+
+```
+IEmailsService.EnviarRecordatorioAsync() → [PENDIENTE] no hay IHostedService registrado.
+El servicio está implementado pero el job scheduler (BackgroundService o Hangfire) no existe.
+
+Flujo diseñado (pendiente implementar):
+  Cada 15 minutos:
+    - Buscar turnos con fecha_hora_inicio = ahora + recordatorio_dias_antes
+    - Si no se envió recordatorio: POST Resend → registrar EmailEnviado
+    - Buscar turnos Realizados hace postturno_horas_despues
+    - Si no se envió post-turno: POST Resend → registrar EmailEnviado
+```
+
+### 5.7 Promover operario / Degradar cliente
+
+```
+POST /usuarios/{id}/promover-operario:
+  1. usuario.Rol = Operario
+  2. Si no existe OperarioVistas para este usuario → crear con defaults:
+       VerMisTurnos=true, VerMisComisiones=true, VerMiCalificacion=false, VerMisEstadisticas=false
+
+POST /usuarios/{id}/degradar-cliente:
+  1. usuario.Rol = Cliente
+  2. Eliminar todas las filas de OperarioSubservicios del usuario
+  3. Mantiene OperarioVistas (histórico)
+  4. Error NO_PERMITIDO(403) si se intenta degradar al Admin
+```
+
+### 5.8 Filtrado de subservicios por sexo
+
+```
+GET /servicios y GET /servicios/{id}:
+  - Si hay JWT y rol=Cliente → leer claim "sexo" del token
+  - Masculino  → subservicios WHERE sexo IN ('Masculino', 'Ambos')
+  - Femenino   → subservicios WHERE sexo IN ('Femenino', 'Ambos')
+  - NoEspecifica o sin claim → todos los subservicios activos
+  - Otros roles (Admin/Operario) o anónimo → todos los subservicios activos
+
+Claim "sexo" se incluye en el JWT generado por JwtService.GenerateAccessToken().
+```
+
+### 5.9 Validación y aplicación de cupones
+
+```
+GET /cupones/validar/{codigo}:
+  - Cupon.Activo = true
+  - FechaDesde <= hoy <= FechaHasta
+  - UsosActuales < UsosMaximos (si tiene límite)
+  - Si UnUsoPorCliente=true → verificar que clienteId no tenga CuponUso para este cupón
+
+Al crear turno con CuponId:
+  - Validar cupon (misma lógica que arriba)
+  - Si TipoDescuento=Porcentaje: PrecioFinal = PrecioBase * (1 - Valor/100)
+  - Si TipoDescuento=MontoFijo:  PrecioFinal = PrecioBase - Valor
+  - Al confirmar pago (Realizar): cupon.UsosActuales++ y crear CuponUso
+```
+
+### 5.10 Rate limiting
+
+Configurado via `appsettings.json` sección `IpRateLimiting` (AspNetCoreRateLimit):
+```json
+{
+  "IpRateLimiting": {
+    "GeneralRules": [
+      { "Endpoint": "POST:/api/v1/turnos",              "Limit": 5,  "Period": "10m" },
+      { "Endpoint": "POST:/api/v1/auth/register",       "Limit": 3,  "Period": "1h"  },
+      { "Endpoint": "POST:/api/v1/auth/forgot-password","Limit": 3,  "Period": "1h"  }
+    ]
+  }
+}
+```
 
 ---
 
@@ -519,9 +658,101 @@ CORS_ALLOWED_ORIGINS  → origins permitidos en producción
 
 ---
 
-## 8. Errores por módulo
+## 8. Códigos de error por módulo
 
-Ver ETEREO_CONTRATO_SOT.md sección 8 para lista completa de códigos de error.
+Todos los errores siguen el formato `{ error: { codigo, mensaje } }`.
+
+### Auth
+| Código | Status | Descripción |
+|---|---|---|
+| `CREDENCIALES_EN_USO` | 409 | Email ya registrado |
+| `CREDENCIALES_INVALIDAS` | 401 | Email o password incorrecto |
+| `CUENTA_BLOQUEADA` | 403 | Usuario bloqueado |
+| `TOKEN_INVALIDO_O_EXPIRADO` | 401 | JWT o refresh token inválido/expirado |
+| `TOKEN_GOOGLE_INVALIDO` | 400 | idToken de Google no válido |
+| `USAR_GOOGLE_AUTH` | 400 | Cuenta Google, usar /auth/google |
+| `SIN_PASSWORD_LOCAL` | 400 | Cuenta sin password (solo Google) |
+| `PASSWORD_ACTUAL_INVALIDA` | 400 | Password actual incorrecta en cambio |
+| `USUARIO_NO_ENCONTRADO` | 404 | Usuario no existe |
+
+### Usuarios
+| Código | Status |
+|---|---|
+| `USUARIO_NO_ENCONTRADO` | 404 |
+| `CREDENCIALES_EN_USO` | 409 |
+| `NO_PERMITIDO` | 403 |
+| `YA_ES_OPERARIO` | 409 |
+| `YA_ES_CLIENTE` | 409 |
+
+### Servicios / Subservicios / Variantes
+| Código | Status |
+|---|---|
+| `SERVICIO_NO_ENCONTRADO` | 404 |
+| `SUBSERVICIO_NO_ENCONTRADO` | 404 |
+| `VARIANTE_NO_ENCONTRADA` | 404 |
+| `REGLA_NO_ENCONTRADA` | 404 |
+
+### Operarios / Disponibilidad
+| Código | Status |
+|---|---|
+| `OPERARIO_NO_ENCONTRADO` | 404 |
+| `SUBSERVICIO_NO_ENCONTRADO` | 404 |
+| `ASIGNACION_NO_ENCONTRADA` | 404 |
+| `YA_ASIGNADO` | 409 |
+| `DISPONIBILIDAD_NO_ENCONTRADA` | 404 |
+| `MOTIVO_NO_ENCONTRADO` | 404 |
+| `SALON_INVALIDO` | 422 |
+
+### Turnos / Sesiones
+| Código | Status |
+|---|---|
+| `TURNO_NO_ENCONTRADO` | 404 |
+| `SESION_NO_ENCONTRADA` | 404 |
+| `OPERARIO_NO_ENCONTRADO` | 404 |
+| `CLIENTE_NO_ENCONTRADO` | 404 |
+| `SUBSERVICIO_NO_ENCONTRADO` | 404 |
+| `VARIANTE_NO_ENCONTRADA` | 404 |
+| `METODO_PAGO_NO_ENCONTRADO` | 404 |
+| `SIN_PERMISO` | 403 |
+| `TRANSICION_INVALIDA` | 409 |
+| `CUPON_YA_USADO` | 409 |
+| `CUPON_AGOTADO` | 409 |
+| `SALON_INVALIDO` | 422 |
+
+### Cupones
+| Código | Status |
+|---|---|
+| `CUPON_NO_ENCONTRADO` | 404 |
+| `CODIGO_EN_USO` | 409 |
+| `CUPON_YA_USADO` | 409 |
+| `CUPON_AGOTADO` | 409 |
+| `CUPON_EXPIRADO` | 400 |
+| `TIPO_DESCUENTO_INVALIDO` | 422 |
+
+### Imputaciones / Catálogos
+| Código | Status |
+|---|---|
+| `CATEGORIA_NO_ENCONTRADA` | 404 |
+| `METODO_PAGO_NO_ENCONTRADO` | 404 |
+| `MOTIVO_NO_ENCONTRADO` | 404 |
+| `NO_PERMITIDO` | 403 |
+
+### Emails / Calificaciones
+| Código | Status | Descripción |
+|---|---|---|
+| `TURNO_NO_ENCONTRADO` | 404 | Turno no existe |
+| `OPERARIO_NO_ENCONTRADO` | 404 | Operario no existe |
+| `SIN_PERMISO` | 403 | El turno no pertenece al cliente autenticado |
+| `TURNO_NO_REALIZADO` | 400 | Solo se pueden calificar turnos con estado `Realizado` |
+| `YA_CALIFICADO` | 400 | El turno ya tiene una calificación registrada |
+| `PUNTUACION_INVALIDA` | 400 | Puntuación fuera del rango 1-5 |
+| `CONFIG_NO_ENCONTRADA` | 404 | ConfiguracionEmail no inicializada |
+| `SIN_DESTINATARIOS` | 400 | Campaña enviada sin emails en el array |
+
+### Estadísticas / Comisiones
+| Código | Status |
+|---|---|
+| `OPERARIO_NO_ENCONTRADO` | 404 |
 
 ---
 

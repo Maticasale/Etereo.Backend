@@ -3,6 +3,7 @@ using Etereo.Api.Attributes;
 using Etereo.Application.Common;
 using Etereo.Application.Interfaces.Emails;
 using Etereo.Shared.Emails;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Etereo.Api.Controllers;
@@ -15,9 +16,9 @@ public class CalificacionesController : ControllerBase
 
     public CalificacionesController(IEmailsService svc) => _svc = svc;
 
-    // POST /api/v1/calificaciones
+    // POST /api/v1/calificaciones — Anónimo con token (cualquier rol autenticado)
     [HttpPost]
-    [RequiereRol("Cliente")]
+    [Authorize]
     public async Task<IActionResult> Crear([FromBody] CrearCalificacionRequest req)
     {
         var sub = User.FindFirstValue("sub");
@@ -25,20 +26,20 @@ public class CalificacionesController : ControllerBase
             return Unauthorized();
 
         var result = await _svc.CrearCalificacionAsync(req, clienteId);
-        return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
+        return result.IsSuccess ? StatusCode(201, new { data = result.Value }) : Error(result);
     }
 
     // GET /api/v1/calificaciones
     [HttpGet]
-    [RequiereRol("Admin", "Operario")]
+    [RequiereRol("Admin")]
     public async Task<IActionResult> Listar([FromQuery] int? operarioId)
     {
         var result = await _svc.ListarCalificacionesAsync(operarioId);
         return result.IsSuccess ? Ok(new { data = result.Value }) : Error(result);
     }
 
-    // GET /api/v1/calificaciones/promedio/{operarioId}
-    [HttpGet("promedio/{operarioId:int}")]
+    // GET /api/v1/calificaciones/operario/{id}
+    [HttpGet("operario/{operarioId:int}")]
     [RequiereRol("Admin", "Operario")]
     public async Task<IActionResult> Promedio(int operarioId)
     {
@@ -50,10 +51,10 @@ public class CalificacionesController : ControllerBase
     {
         var status = result.ErrorCode switch
         {
-            "TURNO_NO_ENCONTRADO"  => 404,
+            "TURNO_NO_ENCONTRADO"    => 404,
             "OPERARIO_NO_ENCONTRADO" => 404,
-            "SIN_PERMISO"          => 403,
-            _                      => 400
+            "SIN_PERMISO"            => 403,
+            _                        => 400
         };
         return StatusCode(status, new { error = new { codigo = result.ErrorCode, mensaje = result.ErrorMessage } });
     }
