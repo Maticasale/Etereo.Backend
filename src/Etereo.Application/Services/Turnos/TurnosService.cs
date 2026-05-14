@@ -365,8 +365,9 @@ public class TurnosService : ITurnosService
         t.Estado = EstadoTurno.Confirmado;
         t.ActualizadoEn = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        var dto = await BuildTurnoDtoAsync(t);
         _ = _emails.NotificarConfirmacionAsync(t.Id);
-        return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
+        return Result<TurnoDto>.Success(dto);
     }
 
     public async Task<Result<TurnoDto>> RechazarTurnoAsync(int id, RechazarTurnoRequest req)
@@ -380,8 +381,9 @@ public class TurnosService : ITurnosService
         t.MotivoRechazo = req.MotivoRechazo;
         t.ActualizadoEn = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        var dto = await BuildTurnoDtoAsync(t);
         _ = _emails.NotificarRechazoAsync(t.Id, req.MotivoRechazo);
-        return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
+        return Result<TurnoDto>.Success(dto);
     }
 
     public async Task<Result<TurnoDto>> CancelarTurnoAsync(int id, int? usuarioId, string? rol)
@@ -398,8 +400,9 @@ public class TurnosService : ITurnosService
         t.Estado = EstadoTurno.Cancelado;
         t.ActualizadoEn = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        var dto = await BuildTurnoDtoAsync(t);
         _ = _emails.NotificarCancelacionAsync(t.Id);
-        return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
+        return Result<TurnoDto>.Success(dto);
     }
 
     public async Task<Result<TurnoDto>> MultaTurnoAsync(int id)
@@ -481,8 +484,9 @@ public class TurnosService : ITurnosService
         }
 
         await _db.SaveChangesAsync();
+        var dto = await BuildTurnoDtoAsync(t);
         _ = _emails.NotificarPostTurnoAsync(t.Id);
-        return Result<TurnoDto>.Success(await BuildTurnoDtoAsync(t));
+        return Result<TurnoDto>.Success(dto);
     }
 
     // ── Helpers privados ──────────────────────────────────────────────────────
